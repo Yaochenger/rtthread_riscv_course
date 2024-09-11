@@ -1,4 +1,4 @@
-# RT-Thread kernel introduction
+### RT-Thread kernel introduction
 
 The kernel represents the fundamental and indispensable component of an operating system. It bears responsibility for the management of system threads, inter-thread communication, system clock, interrupts and memory. The subsequent figure illustrates the RT-Thread kernel architecture, wherein the kernel is situated above the hardware layer. The kernel section encompasses kernel libraries and the real-time kernel implementation.
 
@@ -10,26 +10,26 @@ The kernel libraries represent a minimal set of C library-like function implemen
 
 The implementation of the real-time kernel encompasses a number of key functionalities, including object management, thread management and scheduler, inter-thread communication management, clock management and memory management. The kernel exhibits a minimal resource footprint, requiring only 3KB ROM and 1.2KB RAM.
 
-# Thread Scheduling
+### Thread Scheduling
 
 In the RT-Thread operating system, a thread represents the smallest scheduling unit. The thread scheduling algorithm is a fully preemptive multi-thread scheduling algorithm based on priority. This means that, with the exception of the interrupt handler function, the code in the locking part of the scheduler, and the code for disabling interrupts, which are non-preemptible, all other parts of the system can be preempted. This includes the thread scheduler itself. The system supports 256 thread priorities, although this can be modified through the configuration file to support up to 32 or 8 thread priorities. The default configuration for the STM32 is 32 thread priorities. Priority 0 represents the highest priority, while the lowest priority is reserved for idle threads. Additionally, the system allows for the creation of multiple threads with the same priority, which are scheduled using the time-slice rotation algorithm. Furthermore, the system permits the creation of multiple threads with identical priorities, which are scheduled using a time-slice rotation algorithm to ensure that each thread is executed for the appropriate duration. Additionally, the scheduler's search time for the highest priority threads in a ready state is constant, and the system does not impose a limit on the number of threads, which is solely dependent on the hardware platform's memory constraints.
 
-# Clock Management
+### Clock Management
 
 The clock management system of RT-Thread is based on the clock beat, which represents the fundamental unit of time within the RT-Thread operating system. The RT-Thread timer offers two distinct timer mechanisms: the first is the single-trigger timer, which initiates a timer event on a single occasion following startup, after which the timer ceases to function. The second type is the cycle-triggered timer. This type of timer will trigger the timer event at regular intervals until the user manually stops the timer, at which point it will cease to execute.
 
 Furthermore, the RT-Thread timer can be configured to operate in either HARD_TIMER or SOFT_TIMER mode, depending on the context in which the timeout function is invoked.
 Typically, the timer timing callback function (i.e. the timeout function) is employed to complete the timing service. Users can select the appropriate type of timer to align with their real-time requirements for timing processing.
 
-# Synchronization between Threads
+### Synchronization between Threads
 
 RT-Thread uses thread semaphores, mutexes, and event sets to achieve inter-thread synchronization. Thread synchronizes through the acquisition and release of semaphore and mutexes; the mutex uses priority inheritance to solve the common priority inversion problem in the real-time system. The thread synchronization mechanism allows threads to wait according to priorities or to acquire semaphores or mutexes following the first-in first-out method. Threads synchronize through sending and receiving of events; event sets allows "or trigger" and "and trigger" for multiple events, suitable for situations where threads are waiting for multiple events.
 
-# Inter-Thread Communication
+### Inter-Thread Communication
 
 RT-Thread supports communication mechanisms such as mailbox, message queue, etc. The length of a message in the mailbox is fixed to 4 bytes; message queue can receive messages in variable-length and cache the messages in its own memory space. Compared to message queue, mailbox is more efficient. The sending action of the mailbox and message queue can be safely used in the interrupt service routine. The communication mechanism allows threads to wait by priority or to acquire by first in first out method.
 
-# Memory Management
+### Memory Management
 
 RT-Thread allows static memory pool management and dynamic memory heap management. When static memory pool has available memory space, the time allocated to the memory block will be constant; when the static memory pool is empty, the system will then request for suspending or blocking the thread of the memory block. (that is, the thread will abandon the request and return, if after waiting for a while, the memory block is not obtained or the thread will abandon and return immediately. The waiting time depends on the waiting time parameter set when the memory block is applied). When other threads release the memory block to the memory pool, if there is threads that are suspending and waiting to be allocated of memory blocks, the system will wake up the thread.
 
@@ -39,13 +39,13 @@ There is also a dynamic memory heap management called memheap, which is suitable
 
 The concept of memory management will be explained in the "Memory Management" chapter.
 
-# RT-Thread Startup Process
+### RT-Thread Startup Process
 
 The understanding of most codes usually starts from learning the startup process. We will firstly look for the source of the startup. RT-Thread allows multiple platforms and multiple compilers, and the rtthread_startup() function is a uniform entry point specified by RT-Thread. The general execution sequence is: Firstly, the system starts running the Startup file, then enters rtthread_startup(), and finally enters the user program entry main(). The startup process of RT-Thread is as shown below:
 
 ![](figures/03Startup_process.png)
 
-# Memory Management
+### Memory Management
 
 In a computing system, there are usually two types of memory space: internal memory space and external memory space. The internal memory is quick to access and can be accessed randomly according to the variable address. It is what we usually called RAM (Random-Access Memory) and can be understood as the computer's memory. In the external memory, the content stored is relatively fixed, and the data will not be lost even after the power is turned off. It is what we usually called ROM (Read Only Memory) and can be understood as the hard disk of the computer.
 
@@ -53,7 +53,7 @@ In a computer system, variables and intermediate data are generally stored in RA
 
 This chapter introduces two kinds of memory management methods in RT-Thread, namely dynamic memory heap management and static memory pool management. After learning this chapter, readers will understand the memory management principle and usage of RT-Thread.
 
-## Memory Management Functional Features
+### Memory Management Functional Features
 
 Because time requirements are very strict in real-time systems, memory management is often much more demanding than in general-purpose operating systems:
 
@@ -71,7 +71,7 @@ The second is allocation management for large memory blocks (slab management alg
 
 The third is allocation management for multiple memory heaps (memheap management algorithm)
 
-## Memory Heap Management
+### Memory Heap Management
 
 Memory heap management is used to manage a contiguous memory space. We introduced the memory distribution of RT-Thread in chapter "Kernel Basics". As shown in the following figure, RT-Thread uses the space at "the end of the ZI segment" to the end of the memory as the memory heap.
 

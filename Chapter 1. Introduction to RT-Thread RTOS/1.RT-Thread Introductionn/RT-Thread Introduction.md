@@ -1,4 +1,4 @@
-# RT-Thread
+### RT-Thread RTOS Introduction
 
 RT-Thread was born in 2006, it is an open source, neutral, and community-based real-time operating system (RTOS).
 
@@ -6,7 +6,7 @@ RT-Thread is mainly written in C language, easy to understand and easy to port(c
 
 RT-Thread has Standard version and Nano version. For resource-constrained microcontroller (MCU) systems, the NANO kernel version that requires only 3KB Flash and 1.2KB RAM memory resources can be tailored with easy-to-use tools; And for resource-rich IoT devices, RT-Thread can use the on-line software package management tool, together with system configuration tools, to achieve intuitive and rapid modular cutting, seamlessly import rich software packages, thus achieving complex functions like Android's graphical interface and touch sliding effects, smart voice interaction effects, and so on.
 
-## RT-Thread Architecture
+### RT-Thread Architecture
 
 RT-Thread has not only a real-time kernel, but also rich components. Its architecture is as follows:
 
@@ -18,7 +18,7 @@ It includes:
 - Components and Service Layer: Components are based on upper-level software on top of the RT-Thread kernel, such as virtual file systems, FinSH command-line interfaces, network frameworks, device frameworks, and more. Its modular design allows for high internal cohesion inside the components and low coupling between components.
 - [RT-Thread software package](https://packages.rt-thread.org/en/index.html): A general-purpose software component running on the RT-Thread IoT operating system platform for different application areas, consisting of description information, source code or library files. RT-Thread provides an open package platform with officially available or developer-supplied packages that provide developers with a choice of reusable packages that are an important part of the RT-Thread ecosystem. The package ecosystem is critical to the choice of an operating system because these packages are highly reusable and modular, making it easy for application developers to build the system they want in the shortest amount of time. RT-Thread supports more than 370 software packages.
 
-# RT-Thread Features
+### RT-Thread Features
 
 - Designed for resource-constrained devices, the minimum kernel requires only 1.2KB of RAM and 3 KB of Flash.
 - Has rich components and a prosperous and fast growing package ecosystem.
@@ -27,13 +27,7 @@ It includes:
 - Supports high-performance applications.
 - Supports cross-platform and a wide range of chips.
 
-# Code Catalogue
-
-RT-Thread source code catalog is shown as follow:
-
- 
-
-# Supported IDE and Compiler
+### Supported IDE and Compiler
 
 The main IDE/compilers supported by RT-Thread are:
 
@@ -42,7 +36,7 @@ The main IDE/compilers supported by RT-Thread are:
 - IAR
 - GCC
 
-# RT-Thread Studio IDE
+### RT-Thread Studio IDE
 
 [User Manual](https://www.rt-thread.io/document/site/rtthread-studio/um/studio-user-manual/) | [Tutorial Videos](https://youtu.be/ucq5eJgZIQg)
 
@@ -50,7 +44,7 @@ RT-Thread Studio IDE (a.k.a. RT-Studio) is a one-stop intergrated development en
 
 ![](figures/studio.gif)
 
-# Env Tool
+### Env Tool
 
 [User Manual](https://www.rt-thread.io/document/site/programming-manual/env/env/) | [Tutorial Videos](https://www.youtube.com/watch?v=dEK94o_YoSo)
 
@@ -58,7 +52,7 @@ In the early stage, RT-Thread team also created an auxiliary tool called Env. It
 
 ![](figures/env.png)
 
-# License
+### License
 
 RT-Thread is an open source software and has been licensed under Apache License Version 2.0 since v3.1.1. License information and copyright information can generally be seen at the beginning of the code:
 
@@ -70,7 +64,7 @@ RT-Thread is an open source software and has been licensed under Apache License 
  *
 ```
 
-# Community
+### Community
 
 RT-Thread is very grateful for the support from all community developers, and if you have any ideas, suggestions or questions in the process of using RT-Thread, RT-Thread can be reached by the following means, and we are also updating RT-Thread in real time on these channels. At the same time, any questions can be asked in the [issue section of RT-Thread repository](https://github.com/RT-Thread/rt-thread/issues) or [RT-Thread forum](https://club.rt-thread.io/), and community members will answer them.
 
