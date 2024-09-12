@@ -1,86 +1,88 @@
-# RISC-V中断管理说明
+### RISC-V Interrupt Management Description
 
-RISC-V规范中给出了典型的外部中断控制器PLIC与局部中断控制器CLINT。通常对于具体的内核会针对性实现中断管理器。因此在许多商用的RISC-V芯片中出现了各种各种的中断管理器，例如：PFIC,CLIC等这里我们基于常规的实现方式去介绍RISC-V中断管理部分。在RISC-V的中断管理方式通常涉及俩种，向量中断与非向量中断。接下来我们具体去介绍这两种管理方式在32位的RISC-V处理器进入异常后的处理方式，下文介绍内容均工作在机器模式，所所以涉及的寄存器也均在机器模式下。
+The RISC-V specification gives a typical external interrupt controller, PLIC, and a local interrupt controller, CLINT, which are usually implemented in a kernel-specific way. Therefore, in many commercial RISC-V chips, there are various kinds of interrupt managers, such as PFIC, CLIC, etc. Here we introduce the RISC-V interrupt management part based on the conventional implementation. In RISC-V interrupt management usually involves two kinds of interrupts, vector interrupts and non-vector interrupts. Next, we will introduce these two types of interrupt management in the 32-bit RISC-V processor to handle the exception, the following content are working in machine mode, so the registers involved are also in machine mode.
 
-# 异常介绍
+### Introduction to Exceptions
 
-通常情况下，由程序执行不正确或者执行当前CPU环境不允许的操作导致程序执行流中断的行为被称为异常，由用户配置的例如串口接收到数据导致当前程序执行流暂停的行为被称为中断。
+Generally speaking, the behaviour of interrupting the execution flow of a program due to incorrect program execution or the execution of an operation that is not allowed by the current CPU environment is called an exception, and the behaviour of pausing the execution flow of a program due to the reception of data by a user-configured serial port, for example, is called an interrupt.
 
-在系统中不管触发异常还是中断，处理器的硬件行为是一致的，暂停当前程序执行流，切换至异常或中断程序去执行，处理完成中断或异常后返回之前的程序继续执行。
+Whether an exception or an interrupt is triggered in a system, the hardware behaviour of the processor is the same, suspending the current flow of program execution, switching to the exception or interrupt program for execution, and returning to the previous program to continue execution after the interrupt or exception is handled.
 
-RISC-V规范中，统一将中断与狭义异常的行为统一归为异常。非向量中断在触发中断或者狭义异常时将跳转至同一个程序处理入口去执行，在该处理程序中查找相关寄存器判断异常的类型是中断还是狭义上的异常。向量中断管理模式与非向量中断管理模式的区别在于采用向量中断管理模式会直接跳转至相应的异常处理函数而不需要通过查询寄存的方式去获取触发的异常的具体类型。
+In the RISC-V specification, the behaviour of interrupts and narrow exceptions is uniformly classified as exceptions. A non-vectorised interrupt that triggers an interrupt or a narrow exception jumps to the same handler, where it looks up the relevant registers to determine whether the exception is an interrupt or a narrow exception. The difference between the vector interrupt management mode and the non-vector interrupt management mode is that the vector interrupt management mode will directly jump to the corresponding exception handler without the need to query the registers to find out the specific type of the triggered exception.
 
-## 设置异常入口地址
+#### Setting the Exception Entry Address
 
-在触发异常后程序将跳转到哪里去执行，在RISC-V规范中定义了机器模式异常及地址寄存器(mtvec)，通常在系统启动阶段将该寄存器赋值，将触发异常后跳转执行的函数的地址加载到该寄存器。32位处理器的地址通常需要4字节对齐，所以函数地址的低4位不包含地址信息，这样mtvec寄存器的低两位就可以用作其他功能，通常mtvec寄存器的低两位用于设置中断的管理模式以及其他与中断管理相关的作用。
+The RISC-V specification defines a machine mode exception and address register (mtvec), which is usually assigned a value during the system startup phase, and the address of the function to be executed after the exception is triggered is loaded into this register. 32-bit processors usually require a 4-byte alignment for the address, so the lower 4 bits of the address of the function don't contain the address information, so the mtvec register is not used for the function. This allows the lower two bits of the mtvec register to be used for other functions. Typically, the lower two bits of the mtvec register are used to set the management mode of interrupts and other roles related to interrupt management.
 
-这里以CH32V系列的该寄存器的实现为例，其bit0用于设置采用向量模式还是非向量模式。bit1用于设置向量表具体位置放置的是异常后跳转的绝对地址或者是具体的跳转指令。
+Take the CH32V series as an example, bit0 is used to set whether to use vector mode or non-vector mode. bit1 is used to set whether to place the absolute address of the jump after the exception or the specific jump instruction in the vector table.
 
-## 查询异常原因
+#### Query the cause of the exception
 
-采用非向量中断管理模式管理在触发异常时会跳入统一的异常处理函数去执行，在该异常处理函数中需要查询机器模式异常原因寄存器(mcause)，在RISC-V规范中中mcause寄存器的最高位用于标识异常类型，该位置为标识触发的时中断，该位为0表示触发的是狭义的异常。
+Adopting non-vector interrupt management mode, when an exception is triggered, it will jump into the unified exception handling function to execute, in this exception handling function, it is necessary to query the machine mode exception cause register (mcause), the highest bit of the mcause register is used to identify the type of the exception in the RISC-V specification, the position is to identify the triggered interrupt, and the position is 0, which indicates that the triggered exception is a narrowly-defined abnormality.
 
-## 异常程序指针寄存器
+#### Exception Procedure Pointer Register
 
-RISC-V规范中定义了一个异常程序指针寄存器(mepc)。该寄存器用于保存进入异常或中断时的程序指针，其用于在产生异常时保存进入异常前的指令 PC 指针，当处理完异常后，mepc 被作为返回地址，用于异常返回。需要注意的是，当发生狭义异常时，mepc被更新为当前产生异常的的指令的PC值； 当发生中断时，mepc被更新为下一条指令的PC值。
+The RISC-V specification defines an exception program pointer register (mepc). This register is used to hold the program pointer when entering an exception or interrupt, its used to hold the instruction PC pointer prior to entering the exception when the exception is generated, and when the exception is handled, mepc is used as the return address for the exception return. Note that when a narrow exception occurs, mepc is updated to the PC value of the current instruction that generated the exception; when an interrupt occurs, mepc is updated to the PC value of the next instruction.
 
-## 异常值寄存器
+#### Exception Value Register
 
-RISC-V规范中定义了一个异常值寄存器(mtval)，在触发狭义的异常时，该寄存器用于保存发生异常时引起异常的值。通常该寄存器的行为如下：
-1.如果存储器访问引起的异常，硬件会将异常时存储器访问的地址存入 mtval。
-2.如果是非法指令引起的异常，硬件会将该指令的指令编码存入 mtval。
-3.如果是硬件断点引起的异常，硬件会将断点处 PC 值存入 mtval。
-4.对于其他的异常，硬件将 mtval 的值设为 0，例如 ebreak，ecall 指令引起的异常  
+The RISC-V specification defines an exception value register (mtval), which is used to hold the value of the exception that caused the exception when it was thrown. Typically the behaviour of this register is as follows:
+1. If the exception is caused by a memory access, the hardware stores the address of the memory access at the time of the exception in mtval.
+2. If the exception is caused by an illegal instruction, the hardware stores the instruction code of the instruction in mtval.
+3. If the exception is caused by a hardware breakpoint, the hardware will store the PC value at the breakpoint in mtval.
+4. For other exceptions, the hardware will set the value of mtval to 0, for example, exceptions caused by ebreak, ecall instructions.  
 
-# 触发异常
+### Triggering an exception
 
-当程序在正常运行过程中，若因某种原因，触发进入异常或者中断。对于不同的额RISC-V处理器，与中断相关的寄存器的实现是不一样的，这里我们以沁恒的青稞系列微控制器为例说明
+When the programme is running normally, if for some reason, it is triggered to enter an exception or interrupt. For different RISC-V processors, the implementation of registers related to interrupt is different, here we take Qinheng's barley series microcontroller as an example.
 
-此时微处理器的硬件行为可以概括如下：  
+The hardware behaviour of the microprocessor at this time can be summarized as follows:  
 
-（1）暂停当前程序流，转向执行异常或中断处理函数。异常或中断函数的入口基地址及寻址方式由异常入口基地址寄存器 mtvec 定义，mtvec[31:2]定义了异常或中断函数的基地址。mtvec[1:0]定义了处理函数的寻址方式，其中 mtvec[0]定义异常和中断的入口模式，当 mtvec[0]=0，所有异常和中断使用统一入口，即发生异常或中断时，转向  mtvec[31:2]定义的基地址处执行。具体属于哪种类型或某个中断，需要通过 mcause 寄存器查询，并且分别处理；当 mtvec[0]=1，异常和中断使用向量表模式，即对每个异常和中断进行编号，根据中断编号* 4 进行地址偏移，发生异常或中断时，转向 mtvec[31:2]定义的基地址+中断编号* 4 处执行。向量模式下 mtvec[1]定义了向量表的识别模式，mtvec[1]=0 时，向量表处存放的是一条跳转至异常或中断处理函数的指令，也可以是一条其他指令；mtvec[1]=1 时，向量表处存放的是异常处理函数的绝对地址 。
+(1) Suspend the current programme flow and turn to execute the exception or interrupt handling function. The entry base address and addressing mode of the exception or interrupt function are defined by the exception entry base address register mtvec. mtvec[31:2] defines the base address of the exception or interrupt function. mtvec[1:0] defines the addressing mode of the handler function. mtvec[0] defines the entry mode of the exceptions and interrupts, and when mtvec[0]=0, all the exceptions and interrupts use the unified entry, that is, when an exception or interrupt occurs, it turns to the base address defined by mtvec[31:2] to execute. Which type or interrupt belongs to exactly needs to be queried through the mcause register and handled separately; when mtvec[0]=1, exceptions and interrupts use the vector table mode, i.e., each exception and interrupt is numbered, the address is shifted according to the interrupt number*4, and the execution is shifted to the base address + interrupt number*4 defined by mtvec[31:2] when an exception or interrupt occurs. In vector mode, mtvec[1] defines the recognition mode of the vector table. When mtvec[1]=0, an instruction to jump to the exception or interrupt handler function is stored at the vector table, or it can be an other instruction; when mtvec[1]=1, the absolute address of the exception handler function is stored at the vector table .
 
-（2）更新 CSR 寄存器
-当进入异常或中断时，微处理器会自动更新相关的 CSR 寄存器，包括机器模式异常原因寄存器
-mcause、机器模式异常指针寄存器 mepc、机器模式异常值寄存器 mtval、机器模式状态寄存器 mstatus。
+(2) Update CSR Register
+When entering an exception or interrupt, the microprocessor will automatically update the relevant CSR registers, including the machine mode exception cause register
+mcause, machine mode exception pointer register mepc, machine mode exception value register mtval, and machine mode status register mstatus.
 
-- 更新 mcause
-  如前所述，进入异常或中断后，其值反映当前的异常种类或中断的编号，软件可以读取该寄存器
-  值查看引起异常的原因或判断中断的来源，详见表 2-1。
-- 更新 mepc
-  标准定义退出异常或中断后微处理器的返回地址保存在 mepc 中。所以当发生异常或中断后，硬
-  件自动更新 mepc 值为当前遇到异常时的指令 PC 值，或中断前下一条预执行的指令 PC 值。异常或中断处理结束后，微处理器使用其保存的值作为返回地址，回到中断的位置继续执行。
+- Updating mcause
+  As mentioned earlier, after entering an exception or interrupt, its value reflects the current exception type or interrupt number, and software can read this register to
+  The software can read the value of this register to check the cause of the abnormality or judge the source of the interrupt, see Table 2-1 for details.
+- Update mepc
+  The standard definition of the return address of the microprocessor after exiting an exception or interrupt is stored in mepc. Therefore, when an exception or interrupt occurs, the hardware automatically updates the mepc value to
+  hardware automatically updates the mepc value to the PC value of the current instruction that encountered the exception, or the PC value of the next pre-executed instruction before the interrupt. After the exception or interrupt is handled, the microprocessor uses its saved value as the return address to return to the interrupt location to continue execution.
 
-但值得注意的是：
+It is worth noting, however:
 
-- mepc 是一个可读可写的寄存器，软件也可以修改该值，达到修改返回后运行的 PC 指针位置的
-  目的。
-- 当发生中断时，即异常原因寄存器 mcause[31]=1 时，mepc 的值更新为中断时下一条未执行的
-  指令 PC 值。 
+- mepc is a readable and writable register, and software can also modify the value for the purpose of modifying the PC pointer location for the run after the return
+  purpose.
+- When an interrupt occurs, i.e., when mcause[31]=1, the value of mepc is updated to the PC value of the next unexecuted instruction at the time of the interrupt.
+  When an interrupt occurs, i.e., mcause[31]=1, the value of mepc is updated to the PC value of the next unexecuted instruction at the time of interrupt. 
 
-（3）更新 mtval
-进入异常时，硬件将自动更新 mtval 的值，详细的介绍查看上文对异常值寄存器的介绍。更新 （）（4）mstatus
-进入异常和中断时，硬件会更新 mstatus 中的某些位：
+(3) Update mtval
+When an exception is entered, the hardware will automatically update the value of mtval, for details, please refer to the description of the exception value register above. Update ( ) (4) mstatus
+The hardware updates certain bits in mstatus when entering exceptions and interrupts:
 
-- MPIE 更新为进入异常和中断前的 MIE 值，异常和中断结束后，MPIE 用于恢复 MIE。
-- MPP 更新为进入异常和中断前的特权模式，异常和中断结束后，MPP 用于恢复之前的特权模式。
+- MPIE is updated to the value of the MIE before entering the exception and interrupt, and is used to restore the MIE after the exception and interrupt end.
+- MPP is updated to the privileged mode before entering exceptions and interrupts, and after exceptions and interrupts end, MPP is used to restore the previous privileged mode.
 
-（5）更新微处理器特权模式
-发生异常和中断时，微处理器的特权模式被更新为机器模式   
+(5) Updating the microprocessor privilege mode
+When exceptions and interrupts occur, the microprocessor privilege mode is updated to the machine mode   
 
-（6）执行异常处理函数
+(6) Execution of Exception Handling Functions
 
-进入异常或中断后，微处理器从 mtvec 寄存器定义的地址和模式执行程序。当使用统一入口时，微处理器从 mtvec[31:2]定义的基地址处根据 mtvec[1]的值，取一条跳转指令，或者得到异常和中断处理函数入口地址，转而去执行。此时异常和中断处理函数中可根据 mcause[31]的值判断引起的是异常或者中断，由异常编码判断异常的类型和原因或者对应的中断，进行相应的处理。当使用基地址+中断编号*4 进行偏移的方式时，硬件自动根据中断编号跳转至向量表获取异常或者中断函数的入口地址，并跳转执行。  
+- Upon entering an exception or interrupt, the microprocessor executes the program from the address and mode defined by the mtvec register. When unified entry is used, the microprocessor takes a jump instruction from the base address defined by mtvec[31:2], based on the value of mtvec[1], or gets the entry address of the exception and interrupt handler function, and goes to execution instead. At this time, the exception and interrupt handling function can judge whether the cause is an exception or an interrupt according to the value of mcause[31], and the type and cause of the exception or the corresponding interrupt can be judged by the exception code and handled accordingly. When using the base address + interrupt number * 4 for offset, the hardware automatically jumps to the vector table according to the interrupt number to get the entry address of the exception or interrupt function, and jumps to the execution.  
 
-# 退出异常
+  ### Exit Exception
 
-异常或中断处理程序完成之后，需要从服务程序中退出。进入异常和中断后，微处理器由用户模
-式进入机器模式，异常和中断的处理也在机器模式下完成，当需要退出异常和中断时，需要使用 mret
-指令进行返回。此时，微处理器硬件将自动执行如下操作：
+  After the completion of the exception or interrupt handler, it is necessary to exit from the service routine. After entering exceptions and interrupts, the microprocessor enters machine mode from user mode.
+  The exception and interrupt handling is also done in the machine mode, when you need to exit the exception and interrupt, you need to use the mret
+  instruction when it is necessary to exit exceptions and interrupts. At this time, the microprocessor hardware will automatically perform the following operations:
 
-- PC 指针恢复为 CSR 寄存器 mepc 的值，即从 mepc 保存的指令地址处开始执行。需要注意异
-  常处理完成后对 mepc 的偏移操作。
-- 更新 CSR 寄存器 mstatus，MIE 恢复为 MPIE，MPP 用于恢复之前的微处理器的特权模式。  
+  - The PC pointer is restored to the value of CSR register mepc, i.e., execution starts from the instruction address saved by mepc. Note that the PC pointer is restored to the value of the CSR register mepc.
+    The PC pointer is restored to the value of CSR register mepc, i.e., execution starts from the address of the instruction stored in mepc.
+  - The CSR register mstatus is updated, MIE is restored to MPIE, and MPP is used to restore the previous privileged mode of the microprocessor.  
+
+-   
 
 ![](figures/back_trap.png)
 
