@@ -1,23 +1,23 @@
-# RT-Thread基础函数移植接口适配(RISC-V)
+### RT-Thread Base Function Porting Interface Adaptation (RISC-V)
 
-本小节我们将介绍除上下文切换的函数接口之外的函数接口，这些函数接口的实现相对简单但在系统中起着很重要的作用。
+In this subsection we will introduce function interfaces other than those for context switching, which are relatively simple to implement but play an important role in the system.
 
-# 开关全局中断
+### Switching global interrupts
 
-在系统运行过程中，许多场景会使用到全局中断的开关，例如临界资源的保护在一些场景下可以通过开关中断进行保护。在简单的移植场景下通常是不支持中断嵌套的，所以在进入中断后需要将全局中断关闭，完成中断处理后再将全局中断打开。
+During system operation, many scenarios will use the global interrupt switch, for example, the protection of critical resources can be protected by switching interrupts in some scenarios. In simple porting scenarios, interrupt nesting is usually not supported, so you need to switch global interrupts off after entering an interrupt, and then switch global interrupts on after completing interrupt processing.
 
-rt-thread中的开关全局中断的函数接口如下：
+The interface to switch global interrupt in rt-thread is as follows:
 
 ```c
 rt_base_t rt_hw_interrupt_disable(void);
 void rt_hw_interrupt_enable(rt_base_t level);
 ```
 
-使用关闭全局中断的函数接口后，会返回关中断之前的函数；使用使能全局中断的函数接口时，会将关中断之前的状态进行复原。
+Using the function interface to switch off global interrupts returns the function before switching off interrupts; using the function interface to enable global interrupts restores the state before switching off interrupts.
 
-这部分函数接口的实现通常使用汇编实现以保证开关全局中断代码的高效简洁。
+This part of the function interface is usually implemented in assembly to ensure that the code for switching global interrupts on and off is efficient and concise.
 
-在RISC-V架构下通常可以使用下述的实现方式：
+In the RISC-V architecture, the following implementation can be used:
 
 ```assembly
 /*
@@ -38,9 +38,9 @@ rt_hw_interrupt_enable:
 
 ```
 
-# 线程栈帧
+### Thread Stack Frames
 
-当线程进行上下文切换时便会根据构造的线程栈帧去保存，只有线程栈帧的顺序去保存才能实现线程线程的正确恢复，下述代码是RT-Thread针对RISC-V设置的线程栈帧，接下来我们详细介绍下述线程栈帧中关键成员的作用。
+When a thread makes a context switch, it will be saved according to the constructed thread stack frame, only the order of the thread stack frame can be saved to achieve the correct recovery of the thread thread, the following code is the RT-Thread for RISC-V set up the thread stack frame, we will introduce the role of the key members of the following thread stack frame in detail.
 
 ```c
 typedef struct rt_hw_stack_frame
@@ -116,23 +116,23 @@ typedef struct rt_hw_stack_frame
 }rt_hw_stack_frame_t;
 ```
 
-线程栈帧的构造是根据RISC-V 指令架构定义的寄存器结构实现的。
+The construction of the thread stack frame is implemented according to the register structure defined by the RISC-V instruction architecture.
 
-1.线程栈中的`epc`成员的作用：当前线程即将被切走时，将`ra`寄存器的值赋予该成员， 当该线程被恢复时，将该成员的值拷贝至`mepc`寄存器，当系统执行`mret`指令后会将当前寄存器的值赋值给pc寄存器，系统将从pc指向的地址处继续执行。
+1. The role of the `epc` member of the thread stack: when the current thread is about to be switched, the value of the `ra` register is assigned to this member; when the thread is resumed, the value of this member is copied to the `mepc` register, and when the system executes the `mret` instruction, it assigns the value of the current register to the pc register, and the system will continue execution from the address pointed to by pc.
 
-2.`ra`寄存器用于保存函数返回后继续执行的指令的指针。
+2. `ra` register is used to hold the pointer to the instruction that will continue to be executed after the function returns.
 
-3.`mstatus`寄存器用于设置机器工作的模式，浮点单元的开启于关闭，全局中断的开启与关闭等功能。
+3. The `mstatus` register is used to set the mode in which the machine works, the floating point unit is turned on and off, global interrupts are turned on and off, and other functions.
 
-4.其他整数寄存器都是在整个线程运行过程中可能会使用到的寄存器，所以这部分寄存器均按顺序保存即可。
+4. The other integer registers are registers that may be used throughout the thread's operation, so these registers are saved in order.
 
-5.使能了`ARCH_RISCV_FPU`宏后，线程栈同样会将浮点寄存器按顺序进行保存。
+5. With the `ARCH_RISCV_FPU` macro enabled, the thread stack also saves the floating point registers in order.
 
-# 构造线程栈
+### Construct the thread stack
 
-当线程未运行时，线程初始的现场是空的，所以需要人为构造线程的运行现场，现场指的是线程在运行过程中处理的寄存器的当下的值，在线程进行切换时，就需要将当前运行的线程的现场保存到栈中，在该线程再次运行时从栈中将之前保存的现场也就是处理器的寄存器值加载至系统的寄存器中，从而达到恢复现场继续执行的效果。
+When the thread is not running, the initial thread site is empty, so you need to construct the thread's running site, the site refers to the current value of the registers handled by the thread during operation, when the thread is switched, you need to save the site of the currently running thread to the stack, and when the thread is running again, load the previously saved site, which is also the value of the processor's registers, from the stack into the system's registers. The effect of restoring the scene to continue execution is thus achieved.
 
-这里以RISC-V 32位的微控制器举例，示例代码如下：
+Here we take a RISC-V 32-bit microcontroller as an example, the sample code is as follows:
 
 ```c
 /**
@@ -180,7 +180,7 @@ rt_uint8_t *rt_hw_stack_init(void       *tentry,
 }
 ```
 
-接下来我们将详细分下上述代码中的关键实现部分：
+Next we will break down the key implementation parts of the above code in detail:
 
 ```c
     stk  = stack_addr + sizeof(rt_ubase_t);
@@ -190,7 +190,7 @@ rt_uint8_t *rt_hw_stack_init(void       *tentry,
     frame = (struct rt_hw_stack_frame *)stk;
 ```
 
-上述代码的实现了线程栈空间的对齐，同时为初始的线程栈(现场)分配了空间。
+The above code's implements the alignment of the thread stack space and also allocates space for the initial thread stack .
 
 ```c
     for (i = 0; i < sizeof(struct rt_hw_stack_frame) / sizeof(rt_ubase_t); i++)
@@ -199,7 +199,7 @@ rt_uint8_t *rt_hw_stack_init(void       *tentry,
     }
 ```
 
-上述代码对初始的栈空间进行了初始化，将栈空间的值均初始化为`0xdeadbeef`。
+The above code initialises the initial stack space by initialising all stack space values to `0xdeadbeef`.
 
 ```c
     frame->ra      = (rt_ubase_t)texit;
@@ -207,7 +207,7 @@ rt_uint8_t *rt_hw_stack_init(void       *tentry,
     frame->epc     = (rt_ubase_t)tentry;
 ```
 
-上述代码对栈空间中的关键参数进行赋值，`a0`指的是线程入口函数的参数，`epc`指向当前线程入口函数的地址，`ra`指向函数结束生命周期时执行的函数。
+The above code assigns values to key parameters in the stack space, `a0` refers to the parameters of the thread entry function, `epc` points to the address of the current thread entry function, and `ra` points to the function that is executed at the end of the function's lifecycle.
 
 ```c
 #ifdef ARCH_RISCV_FPU
@@ -217,7 +217,4 @@ rt_uint8_t *rt_hw_stack_init(void       *tentry,
 #endif
 ```
 
-上述代码通过对线程栈中`mstatus`寄存器的现场赋值，达到设置线程启动时运行的状态与模式。
-
-上述函数会在_thread_init函数调用，创建线程和初始化线程的函数均会调用 _thread_init这个函数。
-
+The above code is used to set the running state of the system after startup, the above function will be called in the _thread_init function, the function to create threads and initialise threads will call the _thread_init function.
